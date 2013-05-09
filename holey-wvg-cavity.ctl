@@ -29,7 +29,8 @@
 
 (set! geometry
       (append ; combine lists of objects:
-       (list (make block (center 0 0 0) (size infinity w w)
+
+       (list (make cylinder (center 0 0 0) (radius w) (height infinity) (axis 0 0 1)
                    (material (make dielectric (epsilon eps)))))
 ;       (geometric-object-duplicates (vector3 1 0) 0 (- N 1)
 ;        (make cylinder (center (/ d 2) 0) (radius r) (height infinity)
@@ -40,7 +41,7 @@
        ))
 
 (set! pml-layers (list (make pml (thickness dpml))))
-(set-param! resolution 20)
+(set-param! resolution 5)
 
 (define-param fcen 0.25) ; pulse center frequency
 (define-param df 0.2)  ; pulse width (in frequency)
@@ -67,14 +68,17 @@
       (run-until (/ 1 fcen))
       )
     (begin
+      (define-param componentThing Hy)
       (set! sources (list
                      (make source
                        (src (make gaussian-src (frequency fcen) (fwidth df)))
-                       (component Ey)
+                       (component componentThing)
                        (center (+ dpml (* -0.5 sx)) 0 0)
                        (size 0 w w))))
 
-; (set! symmetries (list (make mirror-sym (direction Y) (phase -1))))
+                                        ; (set! symmetries (list (make mirror-sym (direction Y) (phase -1))))
+      (display "Component Thing: ")
+      (display componentThing)
 
       (define trans ; transmitted flux
         (add-flux fcen df nfreq
@@ -82,14 +86,14 @@
                     (center (- (* 0.5 sx) dpml 0.5) 0 0) (size 0 (* w 2) (* w 2)))))
 
       (run-sources+ (stop-when-fields-decayed
-                     50 Ey
+                     50 componentThing
                      (vector3 (- (* 0.5 sx) dpml 0.5) 0 0)
-                     1e-3)
+                     1e-2)
                      (at-beginning output-epsilon)
                      (during-sources
                      (in-volume (volume (center 0 0 0) (size sx 0 sz))
                      (to-appended "hz-slice" (at-every 0.4 output-hfield-z))))
                      )
-
+      
       (display-fluxes trans) ; print out the flux spectrum
 ))
